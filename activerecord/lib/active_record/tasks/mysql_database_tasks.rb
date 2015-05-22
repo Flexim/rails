@@ -59,6 +59,7 @@ module ActiveRecord
         args = prepare_command_options
         args.concat(["--result-file", "#{filename}"])
         args.concat(["--no-data"])
+        args.concat(["--routines"])
         args.concat(["#{configuration['database']}"])
 
         run_cmd('mysqldump', args, 'dumping')
