@@ -141,6 +141,32 @@ module RenderTestCases
     assert_equal "only partial", @view.render("test/partial_only")
   end
 
+  def test_render_outside_path
+    assert File.exist?(File.join(File.dirname(__FILE__), '../../test/abstract_unit.rb'))
+    assert_raises ActionView::MissingTemplate do
+      @view.render(:template => "../\\../test/abstract_unit.rb")
+    end
+  end
+
+  def test_render_with_strong_parameters
+    params = { :inline => '<%= RUBY_VERSION %>' }
+    def params.permitted?
+      false
+    end
+    e = assert_raises ArgumentError do
+      @view.render(params)
+    end
+    assert_equal "render parameters are not permitted", e.message
+  end
+
+  def test_render_with_permitted_strong_parameters
+    params = { inline: "<%= 'hello' %>" }
+    def params.permitted?
+      true
+    end
+    assert_equal 'hello', @view.render(params)
+  end
+
   def test_render_partial
     assert_equal "only partial", @view.render(:partial => "test/partial_only")
   end
@@ -249,6 +275,8 @@ module RenderTestCases
 
   def test_render_object
     assert_equal "Hello: david", @view.render(:partial => "test/customer", :object => Customer.new("david"))
+    assert_equal "FalseClass", @view.render(:partial => "test/klass", :object => false)
+    assert_equal "NilClass", @view.render(:partial => "test/klass", :object => nil)
   end
 
   def test_render_object_with_array

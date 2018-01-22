@@ -1,3 +1,71 @@
+## Rails 4.2.10 (September 27, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.9 (June 26, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.8 (February 21, 2017) ##
+
+*   Add `config/initializers/to_time_preserves_timezone.rb`, which tells
+    Active Support to preserve the receiver's timezone when calling `to_time`.
+    This matches the new behavior that will be part of Ruby 2.4.
+
+    Fixes #24617.
+
+    *Andrew White*
+
+*   Reset a new session directly after its creation in ActionDispatch::IntegrationTest#open_session
+
+    Fixes Issue #22742
+
+    *Tawan Sierek*
+
+*   Run `before_configuration` callbacks as soon as application constant
+    inherits from `Rails::Application`.
+
+    Fixes #19880.
+
+    *Yuji Yaginuma*
+
+
+## Rails 4.2.7 (July 12, 2016) ##
+
+*   Do not run `bundle install` when generating a new plugin.
+
+    Since bundler 1.12.0, the gemspec is validated so the `bundle install`
+    command will fail just after the gem is created causing confusion to the
+    users. This change was a bug fix to correctly validate gemspecs.
+
+    *Rafael Mendonça França*
+
+
+## Rails 4.2.6 (March 07, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.2 (February 26, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.1 (January 25, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5 (November 12, 2015) ##
+
+*   Fix displaying mailer previews on non local requests when config
+    `action_mailer.show_previews` is set
+
+    *Wojciech Wnętrzak*
+
+
 ## Rails 4.2.4 (August 24, 2015) ##
 
 *   Fix STATS_DIRECTORIES already defined warning when running rake from within

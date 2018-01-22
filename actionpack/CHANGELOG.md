@@ -1,3 +1,90 @@
+## Rails 4.2.10 (September 27, 2017) ##
+
+*   Fix regression in behavior of `normalize_path`.
+
+    In Rails 5 there was a change to ensure the encoding of the original string
+    in a path was maintained. This was incorrectly backported to Rails 4.2 which
+    caused a regression.
+
+    *Eileen M. Uchitelle*
+
+## Rails 4.2.9 (June 26, 2017) ##
+
+*   Use more specific check for :format in route path
+
+    The current check for whether to add an optional format to the path is very lax
+    and will match things like `:format_id` where there are nested resources, e.g:
+
+    ``` ruby
+    resources :formats do
+      resources :items
+    end
+    ```
+
+    Fix this by using a more restrictive regex pattern that looks for the patterns
+    `(.:format)`, `.:format` or `/` at the end of the path. Note that we need to
+    allow for multiple closing parenthesis since the route may be of this form:
+
+    ``` ruby
+    get "/books(/:action(.:format))", controller: "books"
+    ```
+
+    This probably isn't what's intended since it means that the default index action
+    route doesn't support a format but we have a test for it so we need to allow it.
+
+    Fixes #28517.
+
+    *Andrew White*
+
+
+## Rails 4.2.8 (February 21, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.7 (July 12, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.6 (March 07, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.2 (February 26, 2016) ##
+
+*   Do not allow render with unpermitted parameter.
+
+    Fixes CVE-2016-2098.
+
+    *Arthur Neves*
+
+
+## Rails 4.2.5.1 (January 25, 2015) ##
+
+*   No changes.
+
+
+## Rails 4.2.5 (November 12, 2015) ##
+
+*   `ActionController::TestCase` can teardown gracefully if an error is raised
+    early in the `setup` chain.
+
+    *Yves Senn*
+
+*   Parse RSS/ATOM responses as XML, not HTML.
+
+    *Alexander Kaupanin*
+
+*   Fix regression in mounted engine named routes generation for app deployed to
+    a subdirectory. `relative_url_root` was prepended to the path twice (e.g.
+    "/subdir/subdir/engine_path" instead of "/subdir/engine_path")
+
+    Fixes #20920. Fixes #21459.
+
+    *Matthew Erhard*
+
 *   `url_for` does not modify its arguments when generating polymorphic URLs.
 
     *Bernerd Schaefer*
@@ -6,6 +93,7 @@
     `ActionDispatch::Request::Session#fetch` when using non-string keys.
 
     *Jeremy Friesen*
+
 
 ## Rails 4.2.4 (August 24, 2015) ##
 

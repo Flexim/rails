@@ -203,7 +203,7 @@ module ActiveRecord
       #
       # http://bugs.mysql.com/bug.php?id=39170
       def supports_transaction_isolation?
-        version[0] >= 5
+        version >= '5.0.0'
       end
 
       def supports_indexes_in_create?
@@ -215,7 +215,11 @@ module ActiveRecord
       end
 
       def supports_views?
-        version[0] >= 5
+        version >= '5.0.0'
+      end
+
+      def supports_datetime_with_precision?
+        version >= '5.6.4'
       end
 
       def native_database_types
@@ -276,6 +280,14 @@ module ActiveRecord
 
       def unquoted_false
         0
+      end
+
+      def quoted_date(value)
+        if supports_datetime_with_precision? && value.acts_like?(:time) && value.respond_to?(:usec)
+          "#{super}.#{sprintf("%06d", value.usec)}"
+        else
+          super
+        end
       end
 
       # REFERENTIAL INTEGRITY ====================================
@@ -407,6 +419,7 @@ module ActiveRecord
           result.collect { |field| field.first }
         end
       end
+      alias data_sources tables
 
       def truncate(table_name, name = nil)
         execute "TRUNCATE TABLE #{quote_table_name(table_name)}", name
@@ -426,6 +439,7 @@ module ActiveRecord
 
         tables(nil, schema, table).any?
       end
+      alias data_source_exists? table_exists?
 
       # Returns an array of indexes for the given table.
       def indexes(table_name, name = nil) #:nodoc:
@@ -604,8 +618,10 @@ module ActiveRecord
 
       # SHOW VARIABLES LIKE 'name'
       def show_variable(name)
-        variables = select_all("SHOW VARIABLES LIKE '#{name}'", 'SCHEMA')
+        variables = select_all("select @@#{name} as 'Value'", 'SCHEMA')
         variables.first['Value'] unless variables.empty?
+      rescue ActiveRecord::StatementInvalid
+        nil
       end
 
       # Returns a table's primary key and belonging sequence.
@@ -646,6 +662,21 @@ module ActiveRecord
         else
           table[attribute].eq(value)
         end
+      end
+
+      # In MySQL 5.7.5 and up, ONLY_FULL_GROUP_BY affects handling of queries that use
+      # DISTINCT and ORDER BY. It requires the ORDER BY columns in the select list for
+      # distinct queries, and requires that the ORDER BY include the distinct column.
+      # See https://dev.mysql.com/doc/refman/5.7/en/group-by-handling.html
+      def columns_for_distinct(columns, orders) # :nodoc:
+        order_columns = orders.reject(&:blank?).map { |s|
+          # Convert Arel node to string
+          s = s.to_sql unless s.is_a?(String)
+          # Remove any ASC/DESC modifiers
+          s.gsub(/\s+(?:ASC|DESC)\b/i, '')
+        }.reject(&:blank?).map.with_index { |column, i| "#{column} AS alias_#{i}" }
+
+        [super, *order_columns].join(', ')
       end
 
       def strict_mode?
@@ -713,6 +744,10 @@ module ActiveRecord
         subsubselect = select.clone
         subsubselect.projections = [key]
 
+        # Materialize subquery by adding distinct
+        # to work with MySQL 5.7.6 which sets optimizer_switch='derived_merge=on'
+        subsubselect.distinct unless select.limit || select.offset || select.orders.any?
+
         subselect = Arel::SelectManager.new(select.engine)
         subselect.project Arel.sql(key.name)
         subselect.from subsubselect.as('__active_record_temp')
@@ -723,7 +758,7 @@ module ActiveRecord
           case length
           when Hash
             column_names.each {|name| option_strings[name] += "(#{length[name]})" if length.has_key?(name) && length[name].present?}
-          when Fixnum
+          when Integer
             column_names.each {|name| option_strings[name] += "(#{length})"}
           end
         end
@@ -817,7 +852,7 @@ module ActiveRecord
       private
 
       def version
-        @version ||= full_version.scan(/^(\d+)\.(\d+)\.(\d+)/).flatten.map { |v| v.to_i }
+        @version ||= Version.new(full_version.match(/^\d+\.\d+\.\d+/)[0])
       end
 
       def mariadb?
@@ -825,7 +860,7 @@ module ActiveRecord
       end
 
       def supports_rename_index?
-        mariadb? ? false : (version[0] == 5 && version[1] >= 7) || version[0] >= 6
+        mariadb? ? false : version >= '5.7.6'
       end
 
       def configure_connection
@@ -836,9 +871,9 @@ module ActiveRecord
         variables['sql_auto_is_null'] = 0
 
         # Increase timeout so the server doesn't disconnect us.
-        wait_timeout = @config[:wait_timeout]
-        wait_timeout = 2147483 unless wait_timeout.is_a?(Fixnum)
-        variables['wait_timeout'] = self.class.type_cast_config_to_integer(wait_timeout)
+        wait_timeout = self.class.type_cast_config_to_integer(@config[:wait_timeout])
+        wait_timeout = 2147483 unless wait_timeout.is_a?(Integer)
+        variables["wait_timeout"] = wait_timeout
 
         # Make MySQL reject illegal values rather than truncating or blanking them, see
         # http://dev.mysql.com/doc/refman/5.0/en/server-sql-mode.html#sqlmode_strict_all_tables

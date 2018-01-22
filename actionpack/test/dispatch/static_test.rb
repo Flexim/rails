@@ -5,13 +5,17 @@ require 'zlib'
 
 module StaticTests
   def setup
-    @default_internal_encoding = Encoding.default_internal
-    @default_external_encoding = Encoding.default_external
+    silence_warnings do
+      @default_internal_encoding = Encoding.default_internal
+      @default_external_encoding = Encoding.default_external
+    end
   end
 
   def teardown
-    Encoding.default_internal = @default_internal_encoding
-    Encoding.default_external = @default_external_encoding
+    silence_warnings do
+      Encoding.default_internal = @default_internal_encoding
+      Encoding.default_external = @default_external_encoding
+    end
   end
 
   def test_serves_dynamic_content
@@ -27,9 +31,15 @@ module StaticTests
   end
 
   def test_handles_urls_with_ascii_8bit_on_win_31j
-    Encoding.default_internal = "Windows-31J"
-    Encoding.default_external = "Windows-31J"
+    silence_warnings do
+      Encoding.default_internal = "Windows-31J"
+      Encoding.default_external = "Windows-31J"
+    end
     assert_equal "Hello, World!", get("/doorkeeper%E3E4".force_encoding('ASCII-8BIT')).body
+  end
+
+  def test_handles_urls_with_null_byte
+    assert_equal "Hello, World!", get("/doorkeeper%00").body
   end
 
   def test_sets_cache_control

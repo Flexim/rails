@@ -1253,7 +1253,7 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
     assert_equal 2, summit.client_of
   end
 
-  def test_deleting_by_fixnum_id
+  def test_deleting_by_integer_id
     david = Developer.find(1)
 
     assert_difference 'david.projects.count', -1 do
@@ -1290,7 +1290,7 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
     assert_equal 1, companies(:first_firm).clients_of_firm(true).size
   end
 
-  def test_destroying_by_fixnum_id
+  def test_destroying_by_integer_id
     force_signal37_to_load_all_clients_of_firm
 
     assert_difference "Client.count", -1 do
@@ -2024,6 +2024,26 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
 
     assert_equal [bulb1], car.bulbs
     assert_equal [bulb1, bulb2], car.all_bulbs.sort_by(&:id)
+  end
+
+  test "can unscope and where the default scope of the associated model" do
+    Car.has_many :other_bulbs, -> { unscope(where: [:name]).where(name: 'other') }, class_name: "Bulb"
+    car = Car.create!
+    bulb1 = Bulb.create! name: "defaulty", car: car
+    bulb2 = Bulb.create! name: "other",    car: car
+
+    assert_equal [bulb1], car.bulbs
+    assert_equal [bulb2], car.other_bulbs
+  end
+
+  test "can rewhere the default scope of the associated model" do
+    Car.has_many :old_bulbs, -> { rewhere(name: 'old') }, class_name: "Bulb"
+    car = Car.create!
+    bulb1 = Bulb.create! name: "defaulty", car: car
+    bulb2 = Bulb.create! name: "old",      car: car
+
+    assert_equal [bulb1], car.bulbs
+    assert_equal [bulb2], car.old_bulbs
   end
 
   test 'unscopes the default scope of associated model when used with include' do

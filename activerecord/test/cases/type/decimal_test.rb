@@ -10,6 +10,14 @@ module ActiveRecord
         assert_equal BigDecimal.new("1"), type.type_cast_from_user(:"1")
       end
 
+      def test_type_cast_decimal_from_invalid_string
+        type = Decimal.new
+        assert_nil type.type_cast_from_user("")
+        assert_equal BigDecimal.new("1"), type.type_cast_from_user("1ignore")
+        assert_equal BigDecimal.new("0"), type.type_cast_from_user("bad1")
+        assert_equal BigDecimal.new("0"), type.type_cast_from_user("bad")
+      end
+
       def test_type_cast_decimal_from_float_with_large_precision
         type = Decimal.new(precision: ::Float::DIG + 2)
         assert_equal BigDecimal.new("123.0"), type.type_cast_from_user(123.0)
@@ -50,6 +58,13 @@ module ActiveRecord
         assert type.changed?(5.0, 5.0, '5.0wibble')
         assert_not type.changed?(5.0, 5.0, '5.0')
         assert_not type.changed?(-5.0, -5.0, '-5.0')
+      end
+
+      def test_scale_is_applied_before_precision_to_prevent_rounding_errors
+        type = Decimal.new(precision: 5, scale: 3)
+
+        assert_equal BigDecimal("1.250"), type.type_cast_from_user(1.250473853637869)
+        assert_equal BigDecimal("1.250"), type.type_cast_from_user("1.250473853637869")
       end
     end
   end

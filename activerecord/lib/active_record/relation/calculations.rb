@@ -36,9 +36,15 @@ module ActiveRecord
     # Note: not all valid +select+ expressions are valid +count+ expressions. The specifics differ
     # between databases. In invalid cases, an error from the database is thrown.
     def count(column_name = nil, options = {})
+      if options.present? && !ActiveRecord.const_defined?(:DeprecatedFinders)
+        raise ArgumentError, "Relation#count does not support finder options anymore. " \
+                             "Please build a scope and then call count on it or use the " \
+                             "activerecord-deprecated_finders gem to enable this functionality."
+
+      end
+
       # TODO: Remove options argument as soon we remove support to
       # activerecord-deprecated_finders.
-      column_name, options = nil, column_name if column_name.is_a?(Hash)
       calculate(:count, column_name, options)
     end
 
@@ -88,7 +94,7 @@ module ActiveRecord
     #
     # There are two basic forms of output:
     #
-    #   * Single aggregate value: The single value is type cast to Fixnum for COUNT, Float
+    #   * Single aggregate value: The single value is type cast to Integer for COUNT, Float
     #     for AVG, and the given column's type for everything else.
     #
     #   * Grouped values: This returns an ordered hash of the values and groups them. It
@@ -281,6 +287,7 @@ module ActiveRecord
       else
         group_fields = group_attrs
       end
+      group_fields = arel_columns(group_fields)
 
       group_aliases = group_fields.map { |field|
         column_alias_for(field)
@@ -303,7 +310,7 @@ module ActiveRecord
           operation,
           distinct).as(aggregate_alias)
       ]
-      select_values += select_values unless having_values.empty?
+      select_values += self.select_values unless having_values.empty?
 
       select_values.concat group_fields.zip(group_aliases).map { |field,aliaz|
         if field.respond_to?(:as)

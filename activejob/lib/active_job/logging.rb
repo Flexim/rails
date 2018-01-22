@@ -25,7 +25,7 @@ module ActiveJob
         end
       end
 
-      before_enqueue do |job|
+      after_enqueue do |job|
         if job.scheduled_at
           ActiveSupport::Notifications.instrument "enqueue_at.active_job",
             adapter: job.class.queue_adapter, job: job
@@ -40,7 +40,7 @@ module ActiveJob
       def tag_logger(*tags)
         if logger.respond_to?(:tagged)
           tags.unshift "ActiveJob" unless logger_tagged_by_active_job?
-          ActiveJob::Base.logger.tagged(*tags){ yield }
+          logger.tagged(*tags){ yield }
         else
           yield
         end

@@ -1,3 +1,71 @@
+## Rails 4.2.10 (September 27, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.9 (June 26, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.8 (February 21, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.7 (July 12, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.6 (March 07, 2016) ##
+
+*   Fix stripping the digest from the automatically generated img tag alt
+    attribute when assets are handled by Sprockets >=3.0.
+
+    *Bart de Water*
+
+*   Create a new `ActiveSupport::SafeBuffer` instance when `content_for` is flushed.
+
+    Fixes #19890
+
+    *Yoong Kang Lim*
+
+*   Respect value of `:object` if `:object` is false when rendering.
+
+    Fixes #22260.
+
+    *Yuichiro Kaneko*
+
+*   Generate `week_field` input values using a 1-based index and not a 0-based index
+    as per the W3 spec: http://www.w3.org/TR/html-markup/datatypes.html#form.data.week
+
+    *Christoph Geschwind*
+
+
+## Rails 4.2.5.2 (February 26, 2016) ##
+
+*   Do not allow render with unpermitted parameter.
+
+    Fixes CVE-2016-2098.
+
+    *Arthur Neves*
+
+
+## Rails 4.2.5.1 (January 25, 2015) ##
+
+*   Adds boolean argument outside_app_allowed to `ActionView::Resolver#find_templates`
+    method.
+
+    *Aaron Patterson*
+
+
+## Rails 4.2.5 (November 12, 2015) ##
+
+*   Fix `mail_to` when called with `nil` as argument.
+
+    *Rafael Mendonça França*
+
 *   `url_for` does not modify its arguments when generating polymorphic URLs.
 
     *Bernerd Schaefer*

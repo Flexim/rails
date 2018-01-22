@@ -176,6 +176,38 @@ class AppGeneratorTest < Rails::Generators::TestCase
     assert_file("#{app_root}/config/initializers/cookies_serializer.rb", /Rails\.application\.config\.action_dispatch\.cookies_serializer = :marshal/)
   end
 
+  def test_rails_update_does_not_create_to_time_preserves_timezone
+    app_root = File.join(destination_root, 'myapp')
+    run_generator [app_root]
+
+    FileUtils.rm("#{app_root}/config/initializers/to_time_preserves_timezone.rb")
+
+    Rails.application.config.root = app_root
+    Rails.application.class.stubs(:name).returns("Myapp")
+    Rails.application.stubs(:is_a?).returns(Rails::Application)
+
+    generator = Rails::Generators::AppGenerator.new ["rails"], [], destination_root: app_root, shell: @shell
+    generator.send(:app_const)
+    quietly { generator.send(:update_config_files) }
+    assert_no_file "#{app_root}/config/initializers/to_time_preserves_timezone.rb"
+  end
+
+  def test_rails_update_does_not_remove_to_time_preserves_timezone_if_already_present
+    app_root = File.join(destination_root, 'myapp')
+    run_generator [app_root]
+
+    FileUtils.touch("#{app_root}/config/initializers/to_time_preserves_timezone.rb")
+
+    Rails.application.config.root = app_root
+    Rails.application.class.stubs(:name).returns("Myapp")
+    Rails.application.stubs(:is_a?).returns(Rails::Application)
+
+    generator = Rails::Generators::AppGenerator.new ["rails"], [], destination_root: app_root, shell: @shell
+    generator.send(:app_const)
+    quietly { generator.send(:update_config_files) }
+    assert_file "#{app_root}/config/initializers/to_time_preserves_timezone.rb"
+  end
+
   def test_application_names_are_not_singularized
     run_generator [File.join(destination_root, "hats")]
     assert_file "hats/config/environment.rb", /Rails\.application\.initialize!/
@@ -207,7 +239,7 @@ class AppGeneratorTest < Rails::Generators::TestCase
     if defined?(JRUBY_VERSION)
       assert_gem "activerecord-jdbcmysql-adapter"
     else
-      assert_gem "mysql2"
+      assert_gem "mysql2", "'>= 0.3.13', '< 0.5'"
     end
   end
 
@@ -222,7 +254,7 @@ class AppGeneratorTest < Rails::Generators::TestCase
     if defined?(JRUBY_VERSION)
       assert_gem "activerecord-jdbcpostgresql-adapter"
     else
-      assert_gem "pg"
+      assert_gem "pg", "'~> 0.15'"
     end
   end
 
@@ -420,6 +452,21 @@ class AppGeneratorTest < Rails::Generators::TestCase
     assert_gem 'web-console'
   end
 
+  def test_generation_runs_bundle_install
+    assert_generates_with_bundler
+  end
+
+  def test_dev_option
+    assert_generates_with_bundler dev: true
+    rails_path = File.expand_path('../../..', Rails.root)
+    assert_file 'Gemfile', /^gem\s+["']rails["'],\s+path:\s+["']#{Regexp.escape(rails_path)}["']$/
+  end
+
+  def test_edge_option
+    assert_generates_with_bundler edge: true
+    assert_file 'Gemfile', %r{^gem\s+["']rails["'],\s+github:\s+["']#{Regexp.escape("rails/rails")}["'],\s+branch:\s+["']#{Regexp.escape("4-2-stable")}["']$}
+  end
+
   def test_spring
     run_generator
     assert_gem 'spring'
@@ -518,11 +565,22 @@ class AppGeneratorTest < Rails::Generators::TestCase
 
   protected
 
-  def action(*args, &block)
-    capture(:stdout) { generator.send(*args, &block) }
-  end
+    def action(*args, &block)
+      capture(:stdout) { generator.send(*args, &block) }
+    end
 
-  def assert_gem(gem)
-    assert_file "Gemfile", /^\s*gem\s+["']#{gem}["']$*/
-  end
+    def assert_gem(gem, constraint = nil)
+      if constraint
+        assert_file "Gemfile", /^\s*gem\s+["']#{gem}["'], #{constraint}$*/
+      else
+        assert_file "Gemfile", /^\s*gem\s+["']#{gem}["']$*/
+      end
+    end
+
+    def assert_generates_with_bundler(options = {})
+      generator([destination_root], options)
+      generator.expects(:bundle_command).with('install').once
+      generator.stubs(:bundle_command).with('exec spring binstub --all')
+      quietly { generator.invoke_all }
+    end
 end

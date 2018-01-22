@@ -7,8 +7,8 @@ module ActiveRecord
     extend ActiveSupport::Concern
 
     included do
-      class_attribute :_reflections
-      class_attribute :aggregate_reflections
+      class_attribute :_reflections, instance_writer: false
+      class_attribute :aggregate_reflections, instance_writer: false
       self._reflections = {}
       self.aggregate_reflections = {}
     end
@@ -171,6 +171,20 @@ module ActiveRecord
 
         macro
       end
+
+      def inverse_of
+        return unless inverse_name
+
+        @inverse_of ||= klass._reflect_on_association inverse_name
+      end
+
+      def check_validity_of_inverse!
+        unless polymorphic?
+          if has_inverse? && inverse_of.nil?
+            raise InverseOfAssociationNotFoundError.new(self)
+          end
+        end
+      end
     end
     # Base class for AggregateReflection and AssociationReflection. Objects of
     # AggregateReflection and AssociationReflection are returned by the Reflection::ClassMethods.
@@ -313,7 +327,7 @@ module ActiveRecord
       end
 
       def foreign_key
-        @foreign_key ||= options[:foreign_key] || derive_foreign_key
+        @foreign_key ||= options[:foreign_key] || derive_foreign_key.freeze
       end
 
       def association_foreign_key
@@ -339,14 +353,6 @@ module ActiveRecord
 
       def check_validity!
         check_validity_of_inverse!
-      end
-
-      def check_validity_of_inverse!
-        unless polymorphic?
-          if has_inverse? && inverse_of.nil?
-            raise InverseOfAssociationNotFoundError.new(self)
-          end
-        end
       end
 
       def check_preloadable!
@@ -395,12 +401,6 @@ module ActiveRecord
 
       def has_inverse?
         inverse_name
-      end
-
-      def inverse_of
-        return unless inverse_name
-
-        @inverse_of ||= klass._reflect_on_association inverse_name
       end
 
       def polymorphic_inverse_of(associated_class)
@@ -874,6 +874,8 @@ module ActiveRecord
         def primary_key(klass)
           klass.primary_key || raise(UnknownPrimaryKey.new(klass))
         end
+
+        def inverse_name; delegate_reflection.send(:inverse_name); end
 
       private
         def derive_class_name

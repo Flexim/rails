@@ -1,6 +1,5 @@
 require 'action_dispatch/journey'
 require 'forwardable'
-require 'thread_safe'
 require 'active_support/concern'
 require 'active_support/core_ext/object/to_query'
 require 'active_support/core_ext/hash/slice'
@@ -26,7 +25,6 @@ module ActionDispatch
       class Dispatcher < Routing::Endpoint
         def initialize(defaults)
           @defaults = defaults
-          @controller_class_names = ThreadSafe::Cache.new
         end
 
         def dispatcher?; true; end
@@ -68,7 +66,7 @@ module ActionDispatch
       private
 
         def controller_reference(controller_param)
-          const_name = @controller_class_names[controller_param] ||= "#{controller_param.camelize}Controller"
+          const_name = "#{controller_param.camelize}Controller"
           ActiveSupport::Dependencies.constantize(const_name)
         end
 
@@ -471,9 +469,11 @@ module ActionDispatch
         return if MountedHelpers.method_defined?(name)
 
         routes = self
+        helpers = routes.url_helpers
+
         MountedHelpers.class_eval do
           define_method "_#{name}" do
-            RoutesProxy.new(routes, _routes_context)
+            RoutesProxy.new(routes, _routes_context, helpers)
           end
         end
 
@@ -485,14 +485,6 @@ module ActionDispatch
       end
 
       def url_helpers(supports_path = true)
-        if supports_path
-          @url_helpers_with_paths ||= generate_url_helpers(supports_path)
-        else
-          @url_helpers_without_paths ||= generate_url_helpers(supports_path)
-        end
-      end
-
-      def generate_url_helpers(supports_path)
         routes = self
 
         Module.new do
@@ -763,14 +755,18 @@ module ActionDispatch
 
       RESERVED_OPTIONS = [:host, :protocol, :port, :subdomain, :domain, :tld_length,
                           :trailing_slash, :anchor, :params, :only_path, :script_name,
-                          :original_script_name]
+                          :original_script_name, :relative_url_root]
 
       def optimize_routes_generation?
         default_url_options.empty?
       end
 
       def find_script_name(options)
-        options.delete(:script_name) || relative_url_root || ''
+        options.delete(:script_name) || find_relative_url_root(options) || ''
+      end
+
+      def find_relative_url_root(options)
+        options.delete(:relative_url_root) || relative_url_root
       end
 
       def path_for(options, route_name = nil)

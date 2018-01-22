@@ -183,8 +183,13 @@ class PostgresqlArrayTest < ActiveRecord::TestCase
   end
 
   def test_attribute_for_inspect_for_array_field
+    record = PgArray.new { |a| a.ratings = (1..10).to_a }
+    assert_equal("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", record.attribute_for_inspect(:ratings))
+  end
+
+  def test_attribute_for_inspect_for_array_field_for_large_array
     record = PgArray.new { |a| a.ratings = (1..11).to_a }
-    assert_equal("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...]", record.attribute_for_inspect(:ratings))
+    assert_equal("[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]", record.attribute_for_inspect(:ratings))
   end
 
   def test_escaping
@@ -201,6 +206,18 @@ class PostgresqlArrayTest < ActiveRecord::TestCase
     x.reload
 
     assert_equal x.tags_before_type_cast, PgArray.columns_hash['tags'].type_cast_for_database(tags)
+  end
+
+  def test_string_datetime_array_match_pg_behavior
+    date = Date.new(2017, 1, 2)
+    oid = OID::Array.new(ActiveRecord::Type::Date.new)
+
+    date_default = Date::DATE_FORMATS[:default]
+    Date::DATE_FORMATS[:default] = '%d.%m.%Y'
+
+    assert_equal "{'2017-01-02'}", oid.type_cast_for_database([date])
+
+    Date::DATE_FORMATS[:default] = date_default
   end
 
   def test_quoting_non_standard_delimiters

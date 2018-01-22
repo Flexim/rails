@@ -79,6 +79,8 @@ module ActiveRecord
     autoload :AttributeMethods
     autoload :AutosaveAssociation
 
+    autoload :LegacyYamlAdapter
+
     autoload :Relation
     autoload :AssociationRelation
     autoload :NullRelation

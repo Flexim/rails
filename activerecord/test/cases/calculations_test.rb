@@ -186,7 +186,8 @@ class CalculationsTest < ActiveRecord::TestCase
   end
 
   def test_should_group_by_summed_field_having_condition_from_select
-    c = Account.select("MIN(credit_limit) AS min_credit_limit").group(:firm_id).having("MIN(credit_limit) > 50").sum(:credit_limit)
+    skip unless current_adapter?(:MysqlAdapter, :Mysql2Adapter, :SQLite3Adapter)
+    c = Account.select("MIN(credit_limit) AS min_credit_limit").group(:firm_id).having("min_credit_limit > 50").sum(:credit_limit)
     assert_nil       c[1]
     assert_equal 60, c[2]
     assert_equal 53, c[9]
@@ -381,12 +382,25 @@ class CalculationsTest < ActiveRecord::TestCase
     [1,6,2,9].each { |firm_id| assert c.keys.include?(firm_id) }
   end
 
+  def test_should_count_field_of_root_table_with_conflicting_group_by_column
+    assert_equal({ 1 => 1 }, Firm.joins(:accounts).group(:firm_id).count)
+    assert_equal({ 1 => 1 }, Firm.joins(:accounts).group('accounts.firm_id').count)
+  end
+
   def test_count_with_no_parameters_isnt_deprecated
     assert_not_deprecated { Account.count }
   end
 
   def test_count_with_too_many_parameters_raises
     assert_raise(ArgumentError) { Account.count(1, 2, 3) }
+  end
+
+  def test_count_with_a_single_hash_parameter_raises
+    assert_raise(ActiveRecord::StatementInvalid) { Account.count({}) }
+  end
+
+  def test_count_with_finder_options_raises
+    assert_raise(ArgumentError) { Account.count(:firm_name, { conditions: {} }) }
   end
 
   def test_count_with_order

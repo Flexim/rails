@@ -2,13 +2,16 @@ require 'active_support/core_ext/module/aliasing'
 
 module Marshal
   class << self
-    def load_with_autoloading(source)
-      load_without_autoloading(source)
+    def load_with_autoloading(source, proc = nil)
+      load_without_autoloading(source, proc)
     rescue ArgumentError, NameError => exc
-      if exc.message.match(%r|undefined class/module (.+)|)
+      if exc.message.match(%r|undefined class/module (.+?)(::)?\z|)
         # try loading the class/module
-        $1.constantize
-        # if it is a IO we need to go back to read the object
+        loaded = $1.constantize
+
+        raise unless $1 == loaded.name
+
+        # if it is an IO we need to go back to read the object
         source.rewind if source.respond_to?(:rewind)
         retry
       else

@@ -1,3 +1,240 @@
+## Rails 4.2.10 (September 27, 2017) ##
+
+*   `Relation#joins` is no longer affected by the target model's
+    `current_scope`, with the exception of `unscoped`.
+
+    Fixes #29338.
+
+    *Sean Griffin*
+
+## Rails 4.2.9 (June 26, 2017) ##
+
+*   Fix regression caused by `collection_singular_ids=` ignoring different primary key on relationship.
+
+    *Nick Pezza*
+
+*   Fix `rake db:schema:load` with subdirectories.
+
+    *Ryuta Kamizono*
+
+*   Fix `rake db:migrate:status` with subdirectories.
+
+    *Ryuta Kamizono*
+
+*   Fix regression of #1969 with SELECT aliases in HAVING clause.
+
+    *Eugene Kenny*
+
+*   Fix `wait_timeout` to configurable for mysql2 adapter.
+
+    Fixes #26556.
+
+    *Ryuta Kamizono*
+
+*   Make `table_name=` reset current statement cache,
+    so queries are not run against the previous table name.
+
+    *namusyaka*
+
+
+## Rails 4.2.8 (February 21, 2017) ##
+
+*   Using a mysql2 connection after it fails to reconnect will now have an error message
+    saying the connection is closed rather than an undefined method error message.
+
+    *Dylan Thacker-Smith*
+
+*   Bust Model.attribute_names cache when resetting column information
+
+    *James Coleman*
+
+*   Fix query caching when type information is reset
+
+    Backports ancillary fix in 5.0.
+
+    *James Coleman*
+
+*   Allow `joins` to be unscoped.
+
+    Fixes #13775.
+
+    *Takashi Kokubun*
+
+*   Hashes can once again be passed to setters of `composed_of`, if all of the
+    mapping methods are methods implemented on `Hash`.
+
+    Fixes #25978.
+
+    *Sean Griffin*
+
+
+## Rails 4.2.7 (July 12, 2016) ##
+
+*   Inspecting an object with an associated array of over 10 elements no longer
+    truncates the array, preventing `inspect` from looping infinitely in some
+    cases.
+
+    *Kevin McPhillips*
+
+*   Ensure hashes can be assigned to attributes created using `composed_of`.
+    Fixes #25210.
+
+    *Sean Griffin*
+
+*   Queries such as `Computer.joins(:monitor).group(:status).count` will now be
+    interpreted as  `Computer.joins(:monitor).group('computers.status').count`
+    so that when `Computer` and `Monitor` have both `status` columns we don't
+    have conflicts in projection.
+
+    *Rafael Sales*
+
+*   ActiveRecord::Relation#count: raise an ArgumentError when finder options
+    are specified or an ActiveRecord::StatementInvalid when an invalid type
+    is provided for a column name (e.g. a Hash).
+
+    Fixes #20434
+
+    *Konstantinos Rousis*
+
+*   Correctly pass MySQL options when using structure_dump or structure_load
+
+    Specifically, it fixes an issue when using SSL authentication.
+
+    *Alex Coomans*
+
+
+## Rails 4.2.6 (March 07, 2016) ##
+
+*   Fix a bug where using `t.foreign_key` twice with the same `to_table` within
+    the same table definition would only create one foreign key.
+
+    *George Millo*
+
+*   Fix regression in dirty attribute tracking after #dup.  Changes to the
+    clone no longer show as changed attributes in the original object.
+
+    *Dominic Cleal*
+
+*   Fix regression when loading fixture files with symbol keys.
+
+    Closes #22584.
+
+    *Yves Senn*
+
+*   Fix `rake db:structure:dump` on Postgres when multiple schemas are used.
+
+    Fixes #22346.
+
+    *Nick Muerdter*, *ckoenig*
+
+*   Introduce `connection.data_sources` and `connection.data_source_exists?`.
+    These methods determine what relations can be used to back Active Record
+    models (usually tables and views).
+
+    *Yves Senn*, *Matthew Draper*
+
+
+## Rails 4.2.5.2 (February 26, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.1 (January 25, 2015) ##
+
+*   No changes.
+
+
+## Rails 4.2.5 (November 12, 2015) ##
+
+*   No longer pass deprecated option `-i` to `pg_dump`.
+
+    *Paul Sadauskas*
+
+*   Set `scope.reordering_value` to `true` if :reordering values are specified.
+
+    Fixes #21886.
+
+    *Hiroaki Izu*
+
+*   Avoid disabling errors on the PostgreSQL connection when enabling the
+    standard_conforming_strings setting. Errors were previously disabled because
+    the setting wasn't writable in Postgres 8.1 and didn't exist in earlier
+    versions. Now Rails only supports Postgres 8.2+ we're fine to assume the
+    setting exists. Disabling errors caused problems when using a connection
+    pooling tool like PgBouncer because it's not guaranteed to have the same
+    connection between calls to `execute` and it could leave the connection
+    with errors disabled.
+
+    Fixes #22101.
+
+    *Harry Marr*
+
+*   Includes HABTM returns correct size now. It's caused by the join dependency
+    only instantiates one HABTM object because the join table hasn't a primary key.
+
+    Fixes #16032.
+
+    Examples:
+
+        before:
+
+        Project.first.salaried_developers.size # => 3
+        Project.includes(:salaried_developers).first.salaried_developers.size # => 1
+
+        after:
+
+        Project.first.salaried_developers.size # => 3
+        Project.includes(:salaried_developers).first.salaried_developers.size # => 3
+
+    *Bigxiang*
+
+*   Descriptive error message when fixtures contain a missing column.
+
+    Closes #21201.
+
+    *Yves Senn*
+
+*   `bin/rake db:migrate` uses
+    `ActiveRecord::Tasks::DatabaseTasks.migrations_paths` instead of
+    `Migrator.migrations_paths`.
+
+    *Tobias Bielohlawek*
+
+*   Fix `rewhere` in a `has_many` association.
+
+    Fixes #21955.
+
+    *Josh Branchaud*, *Kal*
+
+*   Added run_cmd class method to ActiveRecord::Tasks::DatabaseTasks for
+    drying up Kernel.system() calls within this namespace and to avoid
+    shell expansion by using a paramter list instead of string as arguments
+    for Kernel.system(). Thanks to Nate Berkopec for supply patch to get
+    test units passing.
+
+    *Bryan Paxton*
+
+*   Avoid leaking the first relation we call `first` on, per model.
+
+    Fixes #21921.
+
+    *Matthew Draper*, *Jean Boussier*
+
+*   Allow deserialization of Active Record models that were YAML encoded prior
+    to Rails 4.2
+
+    *Sean Griffin*
+
+*   Correctly apply `unscope` when preloading through associations.
+
+    *Jimmy Bourassa*
+
+*   Ensure `select` quotes aliased attributes, even when using `from`.
+
+    Fixes #21488
+
+    *Sean Griffin & @johanlunds*
+
 *   Correct query for PostgreSQL 8.2 compatibility.
 
     *Ben Murphy*, *Matthew Draper*

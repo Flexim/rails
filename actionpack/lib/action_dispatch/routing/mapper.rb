@@ -60,6 +60,7 @@ module ActionDispatch
 
       class Mapping #:nodoc:
         ANCHOR_CHARACTERS_REGEX = %r{\A(\\A|\^)|(\\Z|\\z|\$)\Z}
+        OPTIONAL_FORMAT_REGEX = %r{(?:\(\.:format\)+|\.:format|/)\Z}
 
         attr_reader :requirements, :conditions, :defaults
         attr_reader :to, :default_controller, :default_action, :as, :anchor
@@ -110,7 +111,7 @@ module ActionDispatch
           if options_constraints.is_a?(Hash)
             split_constraints path_params, options_constraints
             options_constraints.each do |key, default|
-              if URL_OPTIONS.include?(key) && (String === default || Fixnum === default)
+              if URL_OPTIONS.include?(key) && (String === default || Integer === default)
                 @defaults[key] ||= default
               end
             end
@@ -144,7 +145,7 @@ module ActionDispatch
           end
 
           def optional_format?(path, format)
-            format != false && !path.include?(':format') && !path.end_with?('/')
+            format != false && path !~ OPTIONAL_FORMAT_REGEX
           end
 
           def normalize_options!(options, formatted, path_params, path_ast, modyoule)
@@ -632,6 +633,7 @@ module ActionDispatch
                   super(options)
                 else
                   prefix_options = options.slice(*_route.segment_keys)
+                  prefix_options[:relative_url_root] = ''.freeze
                   # we must actually delete prefix segment keys to avoid passing them to next url_for
                   _route.segment_keys.each { |k| options.delete(k) }
                   _routes.url_helpers.send("#{name}_path", prefix_options)
@@ -789,8 +791,8 @@ module ActionDispatch
           end
 
           if options[:constraints].is_a?(Hash)
-            defaults = options[:constraints].select do
-              |k, v| URL_OPTIONS.include?(k) && (v.is_a?(String) || v.is_a?(Fixnum))
+            defaults = options[:constraints].select do |k, v|
+              URL_OPTIONS.include?(k) && (v.is_a?(String) || v.is_a?(Integer))
             end
 
             (options[:defaults] ||= {}).reverse_merge!(defaults)

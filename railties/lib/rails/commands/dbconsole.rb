@@ -30,7 +30,7 @@ module Rails
           'sslca'     => '--ssl-ca',
           'sslcert'   => '--ssl-cert',
           'sslcapath' => '--ssl-capath',
-          'sslcipher' => '--ssh-cipher',
+          'sslcipher' => '--ssl-cipher',
           'sslkey'    => '--ssl-key'
         }.map { |opt, arg| "#{arg}=#{config[opt]}" if config[opt] }.compact
 
@@ -178,7 +178,7 @@ module Rails
       found = commands.detect do |cmd|
         dirs_on_path.detect do |path|
           full_path_command = File.join(path, cmd)
-          File.executable? full_path_command
+          File.file?(full_path_command) && File.executable?(full_path_command)
         end
       end
 

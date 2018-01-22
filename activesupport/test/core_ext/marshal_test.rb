@@ -19,6 +19,19 @@ class MarshalTest < ActiveSupport::TestCase
     end
   end
 
+  test "that Marshal#load still works when passed a proc" do
+    example_string = "test"
+
+    example_proc = Proc.new do |o|
+      if o.is_a?(String)
+        o.capitalize!
+      end
+    end
+
+    dumped = Marshal.dump(example_string)
+    assert_equal Marshal.load(dumped, example_proc), "Test"
+  end
+
   test "that a missing class is autoloaded from string" do
     dumped = nil
     with_autoloading_fixtures do
@@ -29,7 +42,12 @@ class MarshalTest < ActiveSupport::TestCase
     ActiveSupport::Dependencies.clear
 
     with_autoloading_fixtures do
-      assert_kind_of E, Marshal.load(dumped)
+      object = nil
+      assert_nothing_raised do
+        object = Marshal.load(dumped)
+      end
+
+      assert_kind_of E, object
     end
   end
 
@@ -43,7 +61,12 @@ class MarshalTest < ActiveSupport::TestCase
     ActiveSupport::Dependencies.clear
 
     with_autoloading_fixtures do
-      assert_kind_of ClassFolder::ClassFolderSubclass, Marshal.load(dumped)
+      object = nil
+      assert_nothing_raised do
+        object = Marshal.load(dumped)
+      end
+
+      assert_kind_of ClassFolder::ClassFolderSubclass, object
     end
   end
 
@@ -62,6 +85,19 @@ class MarshalTest < ActiveSupport::TestCase
       assert_kind_of E, loaded[0]
       assert_kind_of ClassFolder, loaded[1]
     end
+  end
+
+  unless RUBY_VERSION < "2"
+  test "when one constant resolves to another" do
+    class Parent; C = Class.new; end
+    class Child < Parent; C = Class.new; end
+
+    dump = Marshal.dump(Child::C.new)
+
+    Child.send(:remove_const, :C)
+
+    assert_raise(ArgumentError) { Marshal.load(dump) }
+  end
   end
 
   test "that a real missing class is causing an exception" do
@@ -117,7 +153,12 @@ class MarshalTest < ActiveSupport::TestCase
       ActiveSupport::Dependencies.clear
 
       with_autoloading_fixtures do
-        assert_kind_of E, Marshal.load(f)
+        object = nil
+        assert_nothing_raised do
+          object = Marshal.load(f)
+        end
+
+        assert_kind_of E, object
       end
     end
   end

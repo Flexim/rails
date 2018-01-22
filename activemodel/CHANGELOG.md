@@ -1,3 +1,43 @@
+## Rails 4.2.10 (September 27, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.9 (June 26, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.8 (February 21, 2017) ##
+
+*   No changes.
+
+
+## Rails 4.2.7 (July 12, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.6 (March 07, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.2 (February 26, 2016) ##
+
+*   No changes.
+
+
+## Rails 4.2.5.1 (January 25, 2015) ##
+
+*   No changes.
+
+
+## Rails 4.2.5 (November 12, 2015) ##
+
+*   No changes.
+
+
 ## Rails 4.2.4 (August 24, 2015) ##
 
 * No Changes *

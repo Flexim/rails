@@ -33,7 +33,7 @@ In general, the work of configuring Rails means configuring the components of Ra
 For example, the `config/application.rb` file includes this setting:
 
 ```ruby
-config.autoload_paths += %W(#{config.root}/extras)
+config.time_zone = 'Central Time (US & Canada)'
 ```
 
 This is a setting for Rails itself. If you want to pass settings to individual Rails components, you can do so via the same `config` object in `config/application.rb`:
@@ -138,8 +138,6 @@ numbers. New applications filter out passwords by adding the following `config.f
 pipeline is enabled. It is set to true by default.
 
 * `config.assets.raise_runtime_errors` Set this flag to `true` to enable additional runtime error checking. Recommended in `config/environments/development.rb` to minimize unexpected behavior when deploying to `production`.
-
-* `config.assets.compress` a flag that enables the compression of compiled assets. It is explicitly set to true in `config/environments/production.rb`.
 
 * `config.assets.css_compressor` defines the CSS compressor to use. It is set by default by `sass-rails`. The unique alternative value at the moment is `:yui`, which uses the `yui-compressor` gem.
 
@@ -1042,4 +1040,31 @@ These configuration points are then available through the configuration object:
   Rails.configuration.x.payment_processing.retries  # => 3
   Rails.configuration.x.super_debugger              # => true
   Rails.configuration.x.super_debugger.not_set      # => nil
+  ```
+
+You can also use Rails::Application.config_for to load whole configuration files:
+
+  ```ruby
+  # config/payment.yml:
+  production:
+    environment: production
+    merchant_id: production_merchant_id
+    public_key:  production_public_key
+    private_key: production_private_key
+  development:
+    environment: sandbox
+    merchant_id: development_merchant_id
+    public_key:  development_public_key
+    private_key: development_private_key
+
+  # config/application.rb
+  module MyApp
+    class Application < Rails::Application
+      config.x.payment = config_for(:payment)
+    end
+  end
+  ```
+
+  ```ruby
+  Rails.configuration.x.payment['merchant_id'] # => production_merchant_id or development_merchant_id
   ```
